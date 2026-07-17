@@ -1,40 +1,57 @@
-name: Update ADK Python Docs
+name: Rigenera Python API Reference Docs da Script Google
 
 on:
-  workflow_dispatch: # Sblocca il pulsante manuale nell'interfaccia!
+  workflow_dispatch: # Abilita il bottone manuale
 
 permissions:
   contents: write
 
 jobs:
-  update-adk-python-docs:
+  generate-docs:
     runs-on: ubuntu-latest
     steps:
+      # 1. Scarica la repository della documentazione (il tuo fork)
       - name: Checkout adk-docs
         uses: actions/checkout@v4
+        with:
+          path: adk-docs
 
+      # 2. Scarica la repository del codice Python sorgente (Google originale)
+      - name: Checkout adk-python
+        uses: actions/checkout@v4
+        with:
+          repository: google/adk-python
+          path: adk-python
+
+      # 3. Configura Python sulla macchina virtuale
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # 4. Installa le dipendenze e la libreria Python in modalità modificabile
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          cd adk-docs
           pip install -r requirements.txt
-          # Installiamo la v2.5 corretta da cui estrarre i dati
-          pip install git+https://github.com/google/adk-python/
+          pip install -e ../adk-python
 
-      - name: Generate Markdown Docs from Python Source
+      # 5. Esegue il file generate.sh originale di Google
+      - name: Run Google Generation Script
         run: |
-          # Esegue lo script originale di Google per generare i nuovi file .md
-          # Nota: se lo script richiede parametri, adatta questa riga basandoti sul file originale
-          python scripts/generate_python_docs.py || true 
+          cd adk-docs
+          # Rende eseguibile lo script prima del lancio
+          chmod +x tools/python-api-docs/generate.sh
+          # Esegue lo script puntando alla cartella locale del codice sorgente
+          bash tools/python-api-docs/generate.sh ../adk-python
 
-      - name: Commit and Push updated Markdown files
+      # 6. Salva e pubblica i file Markdown rigenerati sul tuo branch main
+      - name: Commit and Push updated files
         run: |
+          cd adk-docs
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/
-          git diff-index --quiet HEAD || git commit -m "docs: auto-update python docs to v2.5"
+          git diff-index --quiet HEAD || git commit -m "docs: auto-generate python api documentation to v2.5"
           git push origin main
