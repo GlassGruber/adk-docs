@@ -18,6 +18,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch: # Manual trigger option
+  workflow_run:
+    workflows: ["Rigenera Python API Reference Docs da Script Google"]
+    types: [completed]
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -25,6 +31,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3 # zizmor: ignore[artipacked] - gh-deploy needs the persisted GITHUB_TOKEN to push to gh-pages
       - name: Configure Git Credentials
