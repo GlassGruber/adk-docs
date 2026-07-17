@@ -169,6 +169,22 @@ google.adk.integrations.bigquery module
     :undoc-members:
     :show-inheritance:
 
+google.adk.integrations.cloud\_run module
+----------------------------------------
+
+.. automodule:: google.adk.integrations.cloud_run
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+google.adk.integrations.cloud\_run module
+----------------------------------------
+
+.. automodule:: google.adk.integrations.cloud_run
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 google.adk.integrations.crewai module
 -------------------------------------
 
@@ -181,6 +197,22 @@ google.adk.integrations.crewai module
 -------------------------------------
 
 .. automodule:: google.adk.integrations.crewai
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+google.adk.integrations.daytona module
+--------------------------------------
+
+.. automodule:: google.adk.integrations.daytona
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+google.adk.integrations.daytona module
+--------------------------------------
+
+.. automodule:: google.adk.integrations.daytona
     :members:
     :undoc-members:
     :show-inheritance:
@@ -813,6 +845,14 @@ google.adk.tools.url\_context\_tool module
 ----------------------------------------
 
 .. automodule:: google.adk.tools.url_context_tool
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+google.adk.tools.vertex\_ai\_load\_profiles\_tool module
+----------------------------------------------------
+
+.. automodule:: google.adk.tools.vertex_ai_load_profiles_tool
     :members:
     :undoc-members:
     :show-inheritance:
