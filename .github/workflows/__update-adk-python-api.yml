@@ -37,14 +37,36 @@ jobs:
           pip install -r requirements.txt
           pip install -e ../adk-python
 
-      # 5. Esegue il file generate.sh originale di Google
+      # 5. Esegue il file generate.sh originale di Google + estrazione ultima versione
       - name: Run Google Generation Script
         run: |
+          set -euo pipefail
+
           cd adk-docs
-          # Rende eseguibile lo script prima del lancio
+
+          # Recupera il tag usando il token di sicurezza interno della macchina virtuale
+          RAW_VERSION=$(
+            curl -fsSL \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/repos/google/adk-python/releases/latest \
+            | jq -r '.tag_name // empty'
+          )
+
+          if [ -z "${RAW_VERSION}" ]; then
+            echo "Errore: impossibile determinare l'ultimo tag di release da adk-python" >&2
+            exit 1
+          fi
+
+          # Rimuove la 'v' iniziale se presente
+          CLEAN_VERSION="${RAW_VERSION#v}"
+
+          echo "Ultima versione rilevata automaticamente: $CLEAN_VERSION"
+
           chmod +x tools/python-api-docs/generate.sh
-          # Esegue lo script puntando alla cartella locale del codice sorgente
-          bash tools/python-api-docs/generate.sh ../adk-python
+          bash tools/python-api-docs/generate.sh ../adk-python "$CLEAN_VERSION"
+
+
 
       # 6. Salva e pubblica i file Markdown rigenerati sul tuo branch main
       - name: Commit and Push updated files
