@@ -1,7 +1,37 @@
 name: Rigenera Python API Reference Docs da Script Google
 
 on:
-  workflow_dispatch: # Abilita il bottone manuale
+  workflow_dispatch:
+    inputs:
+      sync_upstream:
+        description: 'Se true, recupera e allinea adk-docs dal repo upstream prima di generare'
+        required: false
+        default: 'false'
+      upstream_repo:
+        description: 'URL del repository upstream da cui sincronizzare'
+        required: false
+        default: 'https://github.com/google/adk-docs.git'
+      upstream_branch:
+        description: 'Branch upstream da cui prendere i contenuti'
+        required: false
+        default: 'main'
+  workflow_call:
+    inputs:
+      sync_upstream:
+        description: 'Se true, recupera e allinea adk-docs dal repo upstream prima di generare'
+        required: false
+        type: string
+        default: 'false'
+      upstream_repo:
+        description: 'URL del repository upstream da cui sincronizzare'
+        required: false
+        type: string
+        default: 'https://github.com/google/adk-docs.git'
+      upstream_branch:
+        description: 'Branch upstream da cui prendere i contenuti'
+        required: false
+        type: string
+        default: 'main'
 
 permissions:
   contents: write
@@ -10,19 +40,45 @@ jobs:
   generate-docs:
     runs-on: ubuntu-latest
     steps:
-      # 1. Scarica la repository della documentazione (il tuo fork)
       - name: Checkout adk-docs
         uses: actions/checkout@v4
         with:
           path: adk-docs
+          fetch-depth: 0
 
-      # 2. Configura Python sulla macchina virtuale
+      - name: Sync from upstream (optional)
+        run: |
+          set -euo pipefail
+
+          # Determina gli input in base al trigger (workflow_call vs workflow_dispatch)
+          if [ "${{ github.event_name }}" = "workflow_call" ]; then
+            SYNC_INPUT="${{ inputs.sync_upstream }}";
+            UPSTREAM_REPO="${{ inputs.upstream_repo }}";
+            UPSTREAM_BRANCH="${{ inputs.upstream_branch }}";
+          else
+            SYNC_INPUT="${{ github.event.inputs.sync_upstream || 'false' }}";
+            UPSTREAM_REPO="${{ github.event.inputs.upstream_repo || 'https://github.com/google/adk-docs.git' }}";
+            UPSTREAM_BRANCH="${{ github.event.inputs.upstream_branch || 'main' }}";
+          fi
+
+          echo "sync input: $SYNC_INPUT"
+          if [ "$SYNC_INPUT" = "true" ] || [ "$SYNC_INPUT" = "True" ] || [ "$SYNC_INPUT" = "1" ]; then
+            echo "Sync requested: fetching from $UPSTREAM_REPO $UPSTREAM_BRANCH"
+            cd adk-docs
+            git remote remove upstream >/dev/null 2>&1 || true
+            git remote add upstream "$UPSTREAM_REPO"
+            git fetch upstream --tags --prune
+            git reset --hard "upstream/$UPSTREAM_BRANCH"
+            echo "Synced adk-docs from upstream/$UPSTREAM_BRANCH"
+          else
+            echo "No upstream sync requested. Continuing with current repo state."
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 3. Installa le dipendenze e la libreria Python in modalità modificabile
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -30,14 +86,11 @@ jobs:
           pip install -r requirements.txt
           pip install uv
 
-      # 4. Esegue il file generate.sh originale di Google + estrazione ultima versione
       - name: Run Google Generation Script
         run: |
           set -euo pipefail
-
           cd adk-docs
 
-          # Recupera il tag usando il token di sicurezza interno della macchina virtuale
           RAW_VERSION=$(
             curl -fsSL \
               -H "Accept: application/vnd.github+json" \
@@ -51,20 +104,17 @@ jobs:
             exit 1
           fi
 
-          # Rimuove la 'v' iniziale se presente
           CLEAN_VERSION="${RAW_VERSION#v}"
-
           echo "Ultima versione rilevata automaticamente: $CLEAN_VERSION"
 
           chmod +x tools/python-api-docs/generate.sh
           bash tools/python-api-docs/generate.sh "$CLEAN_VERSION"
 
-      # 5. Salva e pubblica i file Markdown rigenerati sul tuo branch main
       - name: Commit and Push updated files
         run: |
           cd adk-docs
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/
-          git diff-index --quiet HEAD || git commit -m "docs: auto-generate python api documentation to v2.5"
+          git diff-index --quiet HEAD || git commit -m "docs: auto-generate python api documentation"
           git push origin main
