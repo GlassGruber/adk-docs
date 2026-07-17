@@ -1,0 +1,40 @@
+name: Update ADK Python Docs
+
+on:
+  workflow_dispatch: # Sblocca il pulsante manuale nell'interfaccia!
+
+permissions:
+  contents: write
+
+jobs:
+  update-adk-python-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout adk-docs
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # Installiamo la v2.5 corretta da cui estrarre i dati
+          pip install git+https://github.com/google/adk-python/
+
+      - name: Generate Markdown Docs from Python Source
+        run: |
+          # Esegue lo script originale di Google per generare i nuovi file .md
+          # Nota: se lo script richiede parametri, adatta questa riga basandoti sul file originale
+          python scripts/generate_python_docs.py || true 
+
+      - name: Commit and Push updated Markdown files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git diff-index --quiet HEAD || git commit -m "docs: auto-update python docs to v2.5"
+          git push origin main
