@@ -1,1 +1,32 @@
+name: Sync from Upstream
 
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout adk-docs
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync from upstream google/adk-docs
+        run: |
+          set -euo pipefail
+          git remote remove upstream >/dev/null 2>&1 || true
+          git remote add upstream "https://github.com/google/adk-docs.git"
+          git fetch upstream --tags --prune
+          git reset --hard "upstream/main"
+          echo "Synced adk-docs from upstream/main"
+
+      - name: Push synced changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git push origin main --force
