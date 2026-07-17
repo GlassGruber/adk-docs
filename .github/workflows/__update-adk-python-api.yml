@@ -28,6 +28,7 @@ jobs:
           python -m pip install --upgrade pip
           cd adk-docs
           pip install -r requirements.txt
+          pip install uv
 
       # 4. Esegue il file generate.sh originale di Google + estrazione ultima versione
       - name: Run Google Generation Script
