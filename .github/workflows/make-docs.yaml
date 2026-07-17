@@ -1,52 +1,23 @@
 name: Genera Documentazione Aggiornata
 
 on:
-  workflow_dispatch: # Ti permette di avviarlo manualmente con un click
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build-and-export:
-    runs-on: ubuntu-latest
-    steps:
-      # 1. Scarica la repository della documentazione (il tuo fork)
-      - name: Checkout adk-docs
-        uses: actions/checkout@v4
-        with:
-          path: adk-docs
+  sync-upstream:
+    uses: ./.github/workflows/sync-upstream.yaml
 
-      # 2. Scarica la repository Python aggiornata (quella alla v2.5)
-      - name: Checkout adk-python (Sorgente aggiornato)
-        uses: actions/checkout@v4
-        with:
-          repository: google/adk-python
-          path: adk-python
+  update-python-api:
+    needs: sync-upstream
+    uses: ./.github/workflows/__update-adk-python-api.yml
 
-      # 3. Configura Python sulla macchina virtuale
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+  publish-docs:
+    needs: update-python-api
+    uses: ./.github/workflows/publish-docs.yaml
 
-      # 4. Installa MkDocs e la libreria adk-python aggiornata
-      - name: Install Dependencies
-        run: |
-          cd adk-docs
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -e ../adk-python
-
-      # 5. Genera i file HTML statici della documentazione
-      - name: Build Documentation Site
-        run: |
-          cd adk-docs
-          mkdocs build
-
-      # 6. Prende i file generati e crea un pacchetto ZIP scaricabile
-      - name: Upload Documentation Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: adk-docs-v2.5-html
-          path: adk-docs/site/ # Cartella dove MkDocs salva il sito compilato
-          retention-days: 5
+  release-docs:
+    needs: publish-docs
+    uses: ./.github/workflows/release-docs.yaml
